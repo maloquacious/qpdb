@@ -106,27 +106,35 @@ func Gt[V Value](p Path, v V) Filter { return compareValue(OpGt, p, v) }
 func Gte[V Value](p Path, v V) Filter { return compareValue(OpGte, p, v) }
 
 // EqFold returns a filter that is true when the field is a string equal to s
-// under Unicode case folding.
+// under Unicode simple case folding, as [strings.EqualFold] compares: each
+// rune folds to one rune, so "ß" does not equal "ss".
+//
+// The case-folded operators (EqFold, [LikeFold], [PrefixFold], and
+// [SuffixFold]) treat each invalid UTF-8 byte, in the field or in s, as
+// U+FFFD, as strings.EqualFold does. They can therefore disagree with the
+// operators that compare bytes on invalid UTF-8: LikeFold(p, "\xff")
+// matches the field "\xfe" and the field "\uFFFD", but Like(p, "\xff")
+// matches neither.
 func EqFold(p Path, s string) Filter { return compare(OpEqFold, p, s) }
 
 // Like returns a filter that is true when the field is a string containing s.
 func Like(p Path, s string) Filter { return compare(OpLike, p, s) }
 
-// LikeFold is as [Like], case-folded.
+// LikeFold is as [Like], case-folded as for [EqFold].
 func LikeFold(p Path, s string) Filter { return compare(OpLikeFold, p, s) }
 
 // Prefix returns a filter that is true when the field is a string starting
 // with s.
 func Prefix(p Path, s string) Filter { return compare(OpPrefix, p, s) }
 
-// PrefixFold is as [Prefix], case-folded.
+// PrefixFold is as [Prefix], case-folded as for [EqFold].
 func PrefixFold(p Path, s string) Filter { return compare(OpPrefixFold, p, s) }
 
 // Suffix returns a filter that is true when the field is a string ending
 // with s.
 func Suffix(p Path, s string) Filter { return compare(OpSuffix, p, s) }
 
-// SuffixFold is as [Suffix], case-folded.
+// SuffixFold is as [Suffix], case-folded as for [EqFold].
 func SuffixFold(p Path, s string) Filter { return compare(OpSuffixFold, p, s) }
 
 // Regex returns a filter that is true when the field is a string and
@@ -273,23 +281,29 @@ func SameObject(p Path, o any) Filter {
 
 // IsNull returns a filter that is true when the field is present and null,
 // and false when it is missing.
+//
+// IsNull and the other type tests ([IsBool], [IsNumber], [IsString],
+// [IsArray], and [IsObject]) are never unknown: each is false on a missing
+// field, and every one but IsNull is false on a null field. So
+// Not(IsString(p)) matches a record where p is missing or null.
 func IsNull(p Path) Filter { return compare(OpIsNull, p, nil) }
 
-// IsBool returns a filter that is true when the field is present and a bool.
+// IsBool returns a filter that is true when the field is present and a bool,
+// and false otherwise, including when it is missing or null.
 func IsBool(p Path) Filter { return compare(OpIsBool, p, nil) }
 
 // IsNumber returns a filter that is true when the field is present and a
-// number.
+// number, and false otherwise, including when it is missing or null.
 func IsNumber(p Path) Filter { return compare(OpIsNumber, p, nil) }
 
 // IsString returns a filter that is true when the field is present and a
-// string.
+// string, and false otherwise, including when it is missing or null.
 func IsString(p Path) Filter { return compare(OpIsString, p, nil) }
 
 // IsArray returns a filter that is true when the field is present and an
-// array.
+// array, and false otherwise, including when it is missing or null.
 func IsArray(p Path) Filter { return compare(OpIsArray, p, nil) }
 
 // IsObject returns a filter that is true when the field is present and an
-// object.
+// object, and false otherwise, including when it is missing or null.
 func IsObject(p Path) Filter { return compare(OpIsObject, p, nil) }

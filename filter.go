@@ -26,7 +26,8 @@ var (
 	// [Filter] whose dynamic type is not one of the node types listed on
 	// Filter (such as a pointer to a node), an [ErrorNode] with a nil Err,
 	// or a tree nested more than 1000 deep (usually a cycle built with
-	// composite literals).
+	// composite literals). [Match] also reports a [CompareNode] with an
+	// unknown Op with it.
 	ErrInvalidFilter = errors.New("qpdb: invalid filter")
 )
 

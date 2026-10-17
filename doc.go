@@ -8,6 +8,13 @@
 // [IDPath] names a record's ID. A constructor given bad input never panics;
 // it returns a node that records the error, which [FilterErr] reports.
 //
+// Clients implement [Querier] over their own collections. In-memory
+// implementations evaluate filters with [Match], which follows SQL's
+// three-valued logic: a comparison on a missing or null field, or a field of
+// the wrong kind, is unknown and never matches, even under [Not]. The type
+// tests, such as [IsNull] and [IsString], are the exception: they are true
+// or false, and false on a missing field.
+//
 // The package has no parser, wire format, or transport. The specification is
 // docs/design.md in the source repository.
 //

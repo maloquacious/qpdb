@@ -215,8 +215,8 @@ The package exports the node types and their fields.
 Evaluation follows SQL's three-valued logic.
 A comparison is **unknown** when:
 
-- the field is missing;
-- the field is null (except for `IsNull`, which is true or false);
+- the field is missing (except for the type tests, below);
+- the field is null (except for the type tests);
 - the field's kind does not suit the operator (for example `Lt` on a string field with a number operand, or `Like` on a number or array field).
 
 `NOT unknown` is unknown.
@@ -225,9 +225,13 @@ A record matches only if the whole filter is **true**.
 
 Consequences:
 
-- A comparison on a missing or null field never matches, even under `Not`.
+- A comparison other than a type test on a missing or null field never matches, even under `Not`.
 - A kind mismatch never matches and is never an error.
 - `Not(Eq(p, 1))` does not match records where `p` is missing or null.
+
+The type tests (`IsNull`, `IsBool`, `IsNumber`, `IsString`, `IsArray`, `IsObject`) are true or false, never unknown.
+Each is false on a missing field, and every one but `IsNull` is false on a null field, so `Not(IsString(p))` matches records where `p` is missing or null.
+`In` and `NotIn` are not type tests, so `NotIn` does not match records where `p` is missing or null.
 
 ### 6.3 Operators
 
@@ -260,6 +264,9 @@ Numbers compare as `float64`.
 
 String operators take a `string` operand, `Regex` takes a `*regexp.Regexp`, and `Has`, `HasAny`, `HasAll`, `SameArray`, and `SameObject` take JSON-kind values (`any`, validated at build time).
 String operators on non-strings, including arrays, are unknown (§6.2).
+The Fold operators use Unicode simple case folding, as `strings.EqualFold` does, so `"ß"` does not equal `"ss"`.
+They treat each invalid UTF-8 byte as U+FFFD, so on invalid UTF-8 they can disagree with the operators that compare bytes.
+If a record's ID is missing or not a string, `ID(...)` is unknown.
 
 ### 6.4 Containment
 
@@ -276,6 +283,11 @@ String operators on non-strings, including arrays, are unknown (§6.2).
 `Has` never takes an array; use `HasAny` or `HasAll`, which apply `Has` to each element.
 An object operand of `Has`, `HasAny`, or `HasAll` that contains an array at any depth is a build error.
 
+For kind combinations the table does not list, `Has` is unknown when the field's kind cannot contain `x`: an object field with a bool or number `x`, a scalar field with an `x` of another kind, and a scalar field with an object `x`.
+An array field is never unknown: `Has` is false when no element matches.
+Below the top level, inside an array element or an object value, a mismatch is false, not unknown.
+A null value inside an object `x` acts as a scalar: it matches a null field value, or an array with a null element.
+
 ### 6.5 In-memory evaluation
 
 ```go
@@ -284,7 +296,9 @@ func Match[R any](db Querier[R], f Filter, r R) (bool, error)
 
 `Match` evaluates a filter against one record through `db.Lookup`.
 In-memory implementations use it instead of writing their own evaluator.
-It returns an error only for nodes it cannot evaluate.
+It returns an error wrapping `ErrUnsupported` only for nodes and values it cannot evaluate.
+A value it cannot evaluate is one from `Lookup` that is not a JSON kind, one nested more than 1000 levels deep, or one that a single comparison against one operand value would visit more than 2^24 values of (in practice, an aliased or very large value).
+Its errors for nodes do not depend on short-circuiting: it checks every child of an `AND` or `OR`, even once the result is decided.
 
 ## 7. Ordering
 
