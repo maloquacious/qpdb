@@ -140,6 +140,15 @@ recs, err := people.Get(ctx, q)
 
 A nil `*Query`, or a query with no filters, matches every record.
 Calling `Offset` or `Limit` again replaces the earlier value.
+`OrderBy()` with no keys clears the order.
+
+`Querier[R]` implementations read a query through these accessors:
+
+| Accessor | Returns |
+|---|---|
+| `q.Filter()` | The query's filter, never nil. No filters gives `And()`, a lone filter is returned unchanged, and several are AND-ed. |
+| `q.Order()` | A copy of the order keys, as `[]OrderKey`. |
+| `q.Page()` | `(offset, limit int, limited bool)`; `limited` is false when there is no `Limit`. |
 
 Filtering runs first, then ordering, then offset and limit, regardless of the order the methods were called in.
 
