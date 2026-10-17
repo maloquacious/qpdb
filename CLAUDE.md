@@ -10,6 +10,12 @@ Follow its **Port note** recommendations, and do not copy anything marked **Defe
 
 The project is in alpha.
 
+## Priorities
+
+Fix bugs before adding features.
+Before offering to implement a change or work on documentation, check for open bugs (`gh issue list --label bug --state open`).
+If any are open, do not make the offer; propose working on the bugs instead.
+
 ## Build and test
 
 ```sh
