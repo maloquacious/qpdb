@@ -9,8 +9,8 @@ import (
 var (
 	version = semver.Version{
 		Major:      0,
-		Minor:      1,
-		Patch:      4,
+		Minor:      2,
+		Patch:      0,
 		PreRelease: "alpha",
 		Build:      semver.Commit(),
 	}

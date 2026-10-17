@@ -79,8 +79,11 @@ Numeric operands are stored in the filter tree as `float64`.
 Two consequences are documented rather than handled: a `float32` operand does not equal the same decimal decoded from JSON (`float32(0.1)` is not `0.1`), and integers above 2^53 lose precision.
 Null is never an operand; use `IsNull`.
 
-Operators whose operand is a JSON array or object (`HasAny`, `HasAll`, `SameArray`, `SameObject`, and `Has` with an object) accept typed slices and maps, such as `[]string` or `map[string]int`, and convert them to `[]any` and `map[string]any` at build time.
+`SameArray` accepts a typed slice, such as `[]string`, and converts it to `[]any` at build time.
+Object operands (`SameObject`, `Has` with an object, and object elements of `HasAny` and `HasAll`) accept typed maps, such as `map[string]int`, and convert them to `map[string]any`; typed slices nested inside `SameArray` and `SameObject` operands are converted too.
+`HasAny` and `HasAll` take their elements as separate arguments, each a scalar or a (typed) map, not a slice of them.
 Elements that are not JSON kinds are a build error.
+NaN and ±Inf are not JSON numbers, so they are a build error in any operand.
 
 ### 2.4 Regular expressions
 
@@ -93,11 +96,11 @@ Case-insensitivity uses an inline `(?i)` flag.
 A `Path` names a field by segments:
 
 ```go
-qpdb.Path("name")           // top-level field "name"
-qpdb.Path("addr", "city")   // field "city" inside the object in field "addr"
+qpdb.Path{"name"}           // top-level field "name"
+qpdb.Path{"addr", "city"}   // field "city" inside the object in field "addr"
 ```
 
-Segments are never split, so `Path("a.b")` names a field literally called `a.b`.
+Segments are never split, so `Path{"a.b"}` names a field literally called `a.b`.
 Each segment after the first descends into an object.
 If any segment before the last is missing, or is not an object, the field is missing.
 Array indexes are not supported (see §11).
@@ -116,10 +119,10 @@ Every builder method returns a new `*Query`; the receiver is unchanged.
 
 ```go
 q := qpdb.Where(
-        qpdb.Eq(qpdb.Path("state"), "NY"),
-        qpdb.Or(qpdb.Gt(qpdb.Path("age"), 40), qpdb.IsNull(qpdb.Path("age"))),
+        qpdb.Eq(qpdb.Path{"state"}, "NY"),
+        qpdb.Or(qpdb.Gt(qpdb.Path{"age"}, 40), qpdb.IsNull(qpdb.Path{"age"})),
     ).
-    OrderBy(qpdb.Asc(qpdb.Path("name"))).
+    OrderBy(qpdb.Asc(qpdb.Path{"name"})).
     Offset(10).
     Limit(10)
 
@@ -147,6 +150,9 @@ Once a query holds an error, every later builder method returns a query carrying
 Every `Querier[R]` method and every helper returns the query's error before doing any work.
 
 Build errors include an empty path, a nil regular expression, a negative offset or limit, and an empty `OrderBy` key.
+
+A filter constructor given bad input does not panic or return an error; it returns a node that records the error.
+`FilterErr(f)` returns the first such error in a depth-first, left-to-right walk of `f`, and `Where` uses it to set the query's error.
 
 ## 5. The `Querier[R]` interface
 
@@ -259,6 +265,7 @@ String operators on non-strings, including arrays, are unknown (§6.2).
 | scalar | scalar | same kind and equal |
 
 `Has` never takes an array; use `HasAny` or `HasAll`, which apply `Has` to each element.
+An object operand of `Has`, `HasAny`, or `HasAll` that contains an array at any depth is a build error.
 
 ### 6.5 In-memory evaluation
 
