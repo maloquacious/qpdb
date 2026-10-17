@@ -4,9 +4,10 @@ Guidance for Claude Code when working in this repository.
 
 ## Project
 
-`qpdb` (`github.com/maloquacious/qpdb`) is a Go port of TaffyDB, an in-memory JavaScript query database.
-The behavioral reference is [`docs/taffydb/api.md`](docs/taffydb/api.md), which documents what `taffy.js` 2.7.3 actually does, flags its defects, and gives porting notes for Go.
-Follow its **Port note** recommendations, and do not copy anything marked **Defect** unless a task explicitly asks for bug-for-bug compatibility.
+`qpdb` (`github.com/maloquacious/qpdb`) is a Go package that applies a TaffyDB-style query surface to a client's collection of records.
+It is not a TaffyDB clone and has no parser, wire format, or HTTP layer.
+The specification is [`docs/design.md`](docs/design.md).
+[`docs/taffydb/api.md`](docs/taffydb/api.md) documents what `taffy.js` 2.7.3 actually does; it is background only, and `docs/design.md` wins where they disagree.
 
 The project is in alpha.
 
